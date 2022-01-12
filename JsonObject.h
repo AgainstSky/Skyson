@@ -34,14 +34,18 @@ namespace skyson {
                 value_.field_ = new std::unordered_map<std::string, void *>;
         }
 
-        void put(const std::string &key, JsonObject *value) {
+        void put(const std::string *key, JsonObject *value) {
             type_ = value->type_;
-            (*value_.field_)[key] = value;
+            (*value_.field_)[*key] = value;
         }
 
         void setStr(std::string *str) {
             type_ = Token::STR;
             value_.str_ = str;
+        }
+
+        std::string *getStr(){
+            return value_.str_;
         }
 
         void put(const std::string &key, void *value, int type) {

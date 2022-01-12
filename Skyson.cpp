@@ -9,9 +9,10 @@
 
 namespace skyson {
 
-    std::string& trim(std::string & str){
-        str.erase(0,str.find_last_not_of(' '));
-        str.erase(str.find_first_not_of(' ')+1);
+    std::string &trim(std::string &str) {
+        str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
+//        str.erase(0, str.find_last_not_of(' '));
+//        str.erase(str.find_first_not_of(' ') + 1);
         return str;
     }
 
@@ -22,24 +23,49 @@ namespace skyson {
         std::string nStr;
         while (ss.get(c)) {
             c = tolower(c);
-            if (c==','){
-                if (trim(nStr) != "ull"){
+            if (c == ',') {
+                if (trim(nStr) != "ull") {
                     throw "error parse null token";
                 }
-            } else{
-                nStr+=c;
+                return;
+            } else {
+                nStr += c;
             }
         }
     }
 
-    void parseStr(std::stringstream &ss, std::string &str) {
+    void parseStr(std::stringstream &ss, std::string *str) {
         char c, prev;
         while (ss.get(c)) {
-            if (c == '"' && prev != '/') {
+            if (c == '"' && prev != '\\') {
                 return;
             } else {
-                str += c;
+                (*str) += c;
                 prev = c;
+            }
+        }
+    }
+
+    bool parseBool(std::stringstream &ss, char prev) {
+        std::string boolStr;
+        boolStr += tolower(prev);
+        char c;
+        while (ss.get(c)) {
+            c = tolower(c);
+            //todo:: 有个bug，未处理结尾是}的情况
+            if (c == ',' || c == '}') {
+                if (c=='}'){
+                    ss.seekg(-1,std::ios_base::cur);
+                }
+                if (trim(boolStr) != "false" ) {
+                    return false;
+                } else if ( trim(boolStr) != "true"){
+                    return true;
+                }
+                std::cerr << "error parse bool token\n";
+                return false;
+            } else {
+                boolStr += c;
             }
         }
     }
@@ -49,74 +75,78 @@ namespace skyson {
         while (ss.get(c)) {
             switch (c) {
                 case '"': {
-                    std::string str;
+                    auto str = new std::string;
                     parseStr(ss, str);
-                    //todo::这里是不是要动态分配str
-                    jsonObject->setStr(&str);
+                    jsonObject->setStr(str);
                 }
-                    break;
+                    return;
                 case '{':
                     jsonObject->setType(Token::OBJ);
                     jsonObject->initField();
                     parseObject(ss, jsonObject);
-                    break;
+                    return;
                 case '[':
                     break;
                 case 'N':
                 case 'n':
                     parseNull(ss);
                     jsonObject->setType(Token::NL);
-                    break;
+                    return;
                 case 'T':
                 case 't':
                 case 'f':
                 case 'F':
-                    break;
+                    bool  bl = parseBool(ss, c);
+                    jsonObject->setType(Token::BOOL);
+                    return;
             }
         }
     }
 
     void parseObject(std::stringstream &ss, JsonObject *jsonObject) {
         char c;
-        std::string key;
+        std::string *key = nullptr;
+        bool closeObject = false;
         while (ss.get(c)) {
             switch (c) {
                 case '"':
+                    key = new std::string ;
                     parseStr(ss, key);
                     break;
-//                case '{': {
-//                    auto *childJsonObj = new JsonObject;
-//                    parseObject(ss, childJsonObj);
-//                    //todo::判断key是否为空
-//                    jsonObject->put(key, childJsonObj, Token::OBJ);
-//                }
-//                    break;
                 case ':': {
-                    auto childJsonObj = new JsonObject;
+                    JsonObject *childJsonObj = new JsonObject;
                     parseValue(ss, childJsonObj);
                     //todo::判断key是否为空
                     jsonObject->put(key, childJsonObj);
-                }
-
                     break;
+                }
                 case '}':
-                    return;
+                    closeObject = true;
+                    break;
+                default:
+                    std::cout << c << std::endl;
+                    break;
             }
+        }
+        if (!closeObject) {
+            std::cerr << "error object not close";
         }
     }
 
     JsonObject *parse(const std::string &jsonStr) {
-        auto jele = new JsonObject;
+        auto jobj = new JsonObject;
+        jobj->setType(Token::OBJ);
+        jobj->initField();
         std::stringstream ss(jsonStr);
         char c;
         while (ss.get(c)) {
             if (c == '{') {
-                parseObject(ss, jele);
+                parseObject(ss, jobj);
             } else {
                 std::cout << c << std::endl;
             }
         }
-        return nullptr;
+        return jobj;
     }
 
 
