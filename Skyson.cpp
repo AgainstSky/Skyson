@@ -124,6 +124,9 @@ namespace skyson {
                     closeObject = true;
                     break;
                 default:
+                    if (c!=' '&&c!='\n'){
+                        std::cerr<<"error !\n";
+                    }
                     std::cout << c << std::endl;
                     break;
             }

@@ -25,7 +25,7 @@ int main() {
 //        cout<<c<<endl;
 //        f(ss);
 //    }
-    string jsonStr = "{\"str\":\"val\",\"null\":null,\"bool\":true}";
+    string jsonStr = "{\"str\":\"val中文支持\",\n  ,,\"null\":null,\"bool\":true}";
     auto jobj = parse(jsonStr);
     string str="str";
     JsonObject * childJson = static_cast<JsonObject * >(jobj->get(str));
